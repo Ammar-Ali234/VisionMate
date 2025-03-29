@@ -1,4 +1,3 @@
-# main.py
 import cv2
 from vision_agent import VisionAgent
 from reasoning_agent import ReasoningAgent
@@ -9,8 +8,12 @@ vision_agent = VisionAgent()
 reasoning_agent = ReasoningAgent(use_llm=False)  # Set to True if you have a local LLM
 action_agent = ActionAgent()
 
+print("VisionMate is running... Press 'q' to exit, '2' to toggle OCR mode.")
 # Open webcam
 cap = cv2.VideoCapture(0)
+
+# Mode flag: False = Object Detection only, True = Object Detection + OCR
+ocr_mode = False
 
 while True:
     ret, frame = cap.read()
@@ -18,11 +21,15 @@ while True:
         print("Failed to read frame from webcam.")
         break
 
-    # Vision: Detect objects and text
+    # Vision: Detect objects (and text if in OCR mode)
     objects, text = vision_agent.detect(frame)
-
-    # Reasoning: Generate description
-    description = reasoning_agent.generate_description(objects, text)
+    
+    # Depending on mode, include or exclude text in the description
+    if ocr_mode:
+        description = reasoning_agent.generate_description(objects, text)
+    else:
+        description = reasoning_agent.generate_description(objects, "")  # No text in default mode
+    
     print("Description:", description)
 
     # Action: Speak the description
@@ -30,8 +37,16 @@ while True:
 
     # Display the frame (optional)
     cv2.imshow("VisionMate", frame)
-    if cv2.waitKey(1) & 0xFF == ord('q'):
+    
+    # Check for key presses
+    key = cv2.waitKey(1) & 0xFF
+    if key == ord('q'):
         break
+    elif key == ord('2'):
+        ocr_mode = not ocr_mode  # Toggle OCR mode
+        mode_status = "OCR Mode ON" if ocr_mode else "OCR Mode OFF"
+        print(mode_status)
+        action_agent.speak(mode_status)  # Optional: Announce mode change
 
 cap.release()
 cv2.destroyAllWindows()

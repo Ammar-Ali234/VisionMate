@@ -2,12 +2,15 @@
 import cv2
 import numpy as np
 from ultralytics import YOLO
-import pytesseract
+import easyocr
 
 class VisionAgent:
-    def __init__(self, model_path="yolov8n.pt"):
+    def __init__(self, model_path="models/yolov8n.pt"):
         # Load YOLOv8n pre-trained model
-        self.yolo_model = YOLO(model_path)  # Specify task='detect' for object detection
+        self.yolo_model = YOLO(model_path, task='detect')  # Specify task='detect' for object detection
+
+        # Initialize EasyOCR reader for English (offline)
+        self.ocr_reader = easyocr.Reader(['en'], gpu=False)  # Set gpu=False to avoid GPU dependency
 
     def preprocess(self, frame):
         # Resize and preprocess the frame for YOLO
@@ -60,8 +63,9 @@ class VisionAgent:
                     "confidence": float(conf)
                 })
 
-        # Detect text using OCR
-        text = pytesseract.image_to_string(frame).strip()
+        # Detect text using EasyOCR
+        ocr_results = self.ocr_reader.readtext(frame, detail=0)  # detail=0 returns only the text
+        text = " ".join(ocr_results).strip()  # Combine all detected text into a single string
         return objects, text
 
 if __name__ == "__main__":
